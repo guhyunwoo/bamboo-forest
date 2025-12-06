@@ -1,0 +1,42 @@
+services:
+  bamboo-forest-app:
+    build: .
+    container_name: bamboo-forest-app
+    env_file:
+      - .env
+    depends_on:
+      - bamboo-forest-postgresql
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_URL=${DB_URL}
+
+      - JWT_ACCESS_EXPIRATION_TIME=${JWT_ACCESS_EXPIRATION_TIME}
+      - JWT_REFRESH_EXPIRATION_TIME=${JWT_REFRESH_EXPIRATION_TIME}
+      - JWT_PREFIX=${JWT_PREFIX}
+      - JWT_HEADER=${JWT_HEADER}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    ports:
+      - "8080:8080"
+    networks:
+      - bamboo-forest-network
+
+  bamboo-forest-postgresql:
+    image: postgres:17
+    container_name: bamboo-forest-postgresql
+    volumes:
+      - postgresql_data:/var/lib/bamboo/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - bamboo-forest-network
+
+networks:
+  bamboo-forest-network:
+    driver: bridge
+
+volumes:
+  postgresql_data:
