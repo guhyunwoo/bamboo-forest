@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -18,10 +19,20 @@ public class TokenProvider {
 	private final JwtProperties jwtProperties;
 	private final TokenSecretKeyManager tokenSecretKeyManager;
 	private static final String ROLE_PREFIX = "ROLE_";
+	private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000;
 
 	public Mono<String> generateTokenHandle(Long userId, Role role) {
 		return Mono.fromCallable(() -> generateToken(userId, role))
 			.subscribeOn(Schedulers.boundedElastic());
+	}
+
+	public Mono<String> generateRefreshToken() {
+		return Mono.fromCallable(() -> UUID.randomUUID().toString())
+			.subscribeOn(Schedulers.boundedElastic());
+	}
+
+	public long getRefreshTokenExpiration() {
+		return REFRESH_TOKEN_EXPIRATION;
 	}
 
 	private String generateToken(Long userId, Role role) {
