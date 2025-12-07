@@ -1,16 +1,16 @@
 package hyunwoo.com.bambooforest.domain.chat.controller;
 
-import hyunwoo.com.bambooforest.domain.chat.domain.AnonymousUser;
+import hyunwoo.com.bambooforest.domain.chat.application.dto.request.MatchRequestDto;
+import hyunwoo.com.bambooforest.domain.chat.application.dto.request.SendMessageDto;
+import hyunwoo.com.bambooforest.domain.chat.application.dto.response.ChatMessageResponseDto;
+import hyunwoo.com.bambooforest.domain.chat.application.dto.response.ChatRoomResponseDto;
+import hyunwoo.com.bambooforest.domain.chat.application.dto.response.ExtensionResponseDto;
+import hyunwoo.com.bambooforest.domain.chat.application.dto.response.MatchRequestResponseDto;
+import hyunwoo.com.bambooforest.domain.chat.application.mapper.ChatMessageMapper;
+import hyunwoo.com.bambooforest.domain.chat.application.service.ChatMatchingService;
+import hyunwoo.com.bambooforest.domain.chat.application.service.ChatRoomManager;
 import hyunwoo.com.bambooforest.domain.chat.domain.ChatMessage;
-import hyunwoo.com.bambooforest.domain.chat.domain.ChatRoom;
-import hyunwoo.com.bambooforest.domain.chat.domain.MatchRequest;
-import hyunwoo.com.bambooforest.domain.chat.dto.request.MatchRequestDto;
-import hyunwoo.com.bambooforest.domain.chat.dto.request.SendMessageDto;
-import hyunwoo.com.bambooforest.domain.chat.dto.response.ChatMessageResponseDto;
-import hyunwoo.com.bambooforest.domain.chat.dto.response.ChatRoomResponseDto;
-import hyunwoo.com.bambooforest.domain.chat.dto.response.MatchRequestResponseDto;
-import hyunwoo.com.bambooforest.domain.chat.service.ChatMatchingService;
-import hyunwoo.com.bambooforest.domain.chat.service.ChatRoomManager;
+import hyunwoo.com.bambooforest.global.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -23,17 +23,17 @@ import java.time.Duration;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/chat")
 @RequiredArgsConstructor
 public class ChatController {
-
     private final ChatMatchingService chatMatchingService;
     private final ChatRoomManager chatRoomManager;
 
     @PostMapping("/match/request")
     public Mono<MatchRequestResponseDto> requestMatch(@RequestBody MatchRequestDto dto) {
-        MatchRequest request = chatMatchingService.createMatchRequest(dto.chatMode());
-        return Mono.just(MatchRequestResponseDto.from(request));
+		return SecurityUtil.getCurrentUserId()
+			.flatMap(userId -> chatMatchingService.createMatchRequest(userId, dto.chatMode()))
+			.map(MatchRequestResponseDto::from);
     }
 
     @GetMapping(value = "/match/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -53,40 +53,36 @@ public class ChatController {
 
     @PostMapping("/match/accept/{requestId}")
     public Mono<ChatRoomResponseDto> acceptMatch(@PathVariable String requestId) {
-        ChatRoom chatRoom = chatMatchingService.acceptMatch(requestId);
-        chatRoomManager.createRoom(chatRoom);
-        return Mono.just(ChatRoomResponseDto.from(chatRoom));
+		return SecurityUtil.getCurrentUserId()
+			.flatMap(userId -> chatMatchingService.acceptMatch(requestId, userId))
+			.flatMap(chatRoomManager::createRoom)
+			.map(ChatRoomResponseDto::from);
     }
 
     @DeleteMapping("/match/cancel/{requestId}")
     public Mono<Void> cancelMatch(@PathVariable String requestId) {
-        chatMatchingService.cancelMatchRequest(requestId);
-        return Mono.empty();
+		return chatMatchingService.cancelMatchRequest(requestId);
     }
 
     @PostMapping("/message")
     public Mono<Void> sendMessage(@RequestBody SendMessageDto dto) {
-        ChatRoom room = chatRoomManager.getRoom(dto.roomId());
+		return SecurityUtil.getCurrentUserId()
+			.flatMap(userId -> chatRoomManager.getRoom(dto.roomId())
+				.switchIfEmpty(Mono.error(new IllegalArgumentException("Room not found")))
+				.flatMap(room -> {
+					if (!room.getCreatingUserId().equals(userId) &&
+						!room.getAcceptingUserId().equals(userId)) {
+						return Mono.error(new IllegalArgumentException("User not in room"));
+					}
 
-        if (room == null) {
-            return Mono.error(new IllegalArgumentException("Room not found"));
-        }
-
-        AnonymousUser sender = null;
-        if (room.getUser1().getUserId().equals(dto.userId())) {
-            sender = room.getUser1();
-        } else if (room.getUser2() != null && room.getUser2().getUserId().equals(dto.userId())) {
-            sender = room.getUser2();
-        }
-
-        if (sender == null) {
-            return Mono.error(new IllegalArgumentException("User not in room"));
-        }
-
-        ChatMessage message = ChatMessage.chat(dto.roomId(), sender, dto.content());
-        chatRoomManager.sendMessage(dto.roomId(), message);
-
-        return Mono.empty();
+					ChatMessage message = ChatMessageMapper.createChatMessage(
+						dto.roomId(),
+						userId,
+						dto.content()
+					);
+					return chatRoomManager.sendMessage(dto.roomId(), message);
+				}))
+			.then();
     }
 
     @GetMapping(value = "/room/{roomId}/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -106,7 +102,19 @@ public class ChatController {
 
     @PostMapping("/room/{roomId}/close")
     public Mono<Void> closeRoom(@PathVariable String roomId) {
-        chatRoomManager.closeRoom(roomId);
-        return Mono.empty();
+		return chatRoomManager.closeRoom(roomId);
+	}
+
+	@PostMapping("/room/{roomId}/extend")
+	public Mono<ExtensionResponseDto> requestExtension(@PathVariable String roomId) {
+		return SecurityUtil.getCurrentUserId()
+			.flatMap(userId -> chatRoomManager.requestExtension(roomId, userId))
+			.map(room -> ExtensionResponseDto.from(
+				room.getRoomId(),
+				room.isExtensionRequestedByCreatingUser(),
+				room.isExtensionRequestedByAcceptingUser(),
+				room.isBothUsersRequestedExtension(),
+				room.getExpiresAt().toString()
+			));
     }
 }
