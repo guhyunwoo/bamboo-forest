@@ -1,47 +1,49 @@
 package hyunwoo.com.bambooforest.domain.chat.domain;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
+@Table("chat_messages")
 public class ChatMessage {
-    private final String roomId;
-    private final String senderId;
-    private final String senderNickname;
-    private final String content;
-    private final LocalDateTime sentAt;
-    private final MessageType type;
+    @Id
+    @Column("message_id")
+    private String messageId;
+
+    @Column("room_id")
+    private String roomId;
+
+    @Column("sender_id")
+    private Long senderId;
+
+    @Column("content")
+    private String content;
+
+    @Column("sent_at")
+    private LocalDateTime sentAt;
+
+    @Column("type")
+    private MessageType type;
 
     public enum MessageType {
-        CHAT,           // 일반 채팅 메시지
-        JOIN,           // 사용자 입장
-        LEAVE,          // 사용자 퇴장
-        ROOM_CLOSED,    // 방 종료
-        TIME_WARNING    // 시간 경고
+        CHAT,
+        JOIN,
+        LEAVE,
+        ROOM_CLOSED,
+        TIME_WARNING
     }
 
-    public static ChatMessage chat(String roomId, AnonymousUser sender, String content) {
-        return new ChatMessage(
-                roomId,
-                sender.getUserId(),
-                sender.getNickname(),
-                content,
-                LocalDateTime.now(),
-                MessageType.CHAT
-        );
-    }
-
-    public static ChatMessage system(String roomId, String content, MessageType type) {
-        return new ChatMessage(
-                roomId,
-                "SYSTEM",
-                "시스템",
-                content,
-                LocalDateTime.now(),
-                type
-        );
+    public ChatMessage(String messageId, String roomId, Long senderId, String content,
+                       LocalDateTime sentAt, MessageType type) {
+        this.messageId = messageId;
+        this.roomId = roomId;
+        this.senderId = senderId;
+        this.content = content;
+        this.sentAt = sentAt;
+        this.type = type;
     }
 }

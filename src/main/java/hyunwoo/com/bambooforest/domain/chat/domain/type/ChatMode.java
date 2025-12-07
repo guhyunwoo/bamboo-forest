@@ -1,7 +1,7 @@
 package hyunwoo.com.bambooforest.domain.chat.domain.type;
 
 public enum ChatMode {
-    CASUAL,      // 가벼운 대화
-    SERIOUS,     // 진지한 대화
-    RANDOM       // 완전 랜덤
+	SOFT_COFFEE_CHAT,     // 가벼운 커피챗
+	HARD_COFFEE_CHAT,     // 매운 커피챗
+    BEER_CHAT       	  // 맥주챗
 }

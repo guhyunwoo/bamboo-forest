@@ -1,25 +1,33 @@
 package hyunwoo.com.bambooforest.domain.chat.domain;
 
 import hyunwoo.com.bambooforest.domain.chat.domain.type.ChatMode;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
+@Table("match_requests")
 public class MatchRequest {
-    private final String requestId;
-    private final AnonymousUser user;
-    private final ChatMode chatMode;
-    private final LocalDateTime createdAt;
+    @Id
+    @Column("request_id")
+    private String requestId;
 
-    public static MatchRequest create(AnonymousUser user, ChatMode chatMode) {
-        return new MatchRequest(
-                user.getUserId(),
-                user,
-                chatMode,
-                LocalDateTime.now()
-        );
+    @Column("user_id")
+    private Long userId;
+
+    @Column("chat_mode")
+    private ChatMode chatMode;
+
+    @Column("created_at")
+    private LocalDateTime createdAt;
+
+    public MatchRequest(String requestId, Long userId, ChatMode chatMode, LocalDateTime createdAt) {
+        this.requestId = requestId;
+        this.userId = userId;
+        this.chatMode = chatMode;
+        this.createdAt = createdAt;
     }
 }
