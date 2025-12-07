@@ -7,3 +7,26 @@ spring:
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     name: ${DB_NAME}
+
+server:
+  port: 8080
+
+logging:
+  level:
+    hyunwoo.com.bambooforest: DEBUG
+
+jwt:
+  access-time: ${JWT_ACCESS_EXPIRATION_TIME}
+  prefix: ${JWT_PREFIX}
+  header: ${JWT_HEADER}
+  secret-key: ${JWT_SECRET_KEY}
+
+bsm:
+  oauth:
+    client-id: ${BSM_OAUTH_CLIENT_ID}
+    client-secret: ${BSM_OAUTH_CLIENT_SECRET}
+    redirect-uri: ${BSM_OAUTH_REDIRECT_URI}
+    oauth-uri: ${BSM_OAUTH_URI}
+    token-uri: ${BSM_OAUTH_TOKEN_URI}
+    resource-uri: ${BSM_OAUTH_RESOURCE_URI}
+    front-end-redirect-uri: ${FRONT_END_REDIRECT_URI}
