@@ -30,7 +30,7 @@ public class SecurityConfig {
         http
 			.authorizeExchange(authorize -> {
 				authorize
-					.anyExchange().permitAll()
+					.pathMatchers("/api/chat/**").permitAll()
 					.anyExchange().authenticated();
 			});
 
