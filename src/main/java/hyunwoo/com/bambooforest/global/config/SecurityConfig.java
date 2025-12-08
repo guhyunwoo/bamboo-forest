@@ -32,6 +32,8 @@ public class SecurityConfig {
 				authorize
 					.pathMatchers("/oauth/**").permitAll()
 					.pathMatchers("/auth/**").permitAll()
+					.pathMatchers("/chat/match/subscribe").permitAll()
+					.pathMatchers("/chat/room/*/subscribe").permitAll()
 					.pathMatchers("/chat/**").authenticated()
 					.anyExchange().authenticated();
 			});
